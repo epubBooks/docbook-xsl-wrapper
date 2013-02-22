@@ -37,11 +37,11 @@ _Please make sure that xsltproc uses the *1.78.0* stylesheets as default_
 
 ## Installation
 
-    $ gem install docbook_xsl
+    $ gem install docbook_xsl_wrapper
 
 ## Usage
 
-    $ docbook_xsl [OPTIONS] [DocBook File]
+    $ docbook_xsl_wrapper [OPTIONS] [DocBook File]
 
 ## Future Improvements
 
