@@ -1,0 +1,9 @@
+require "autotest/growl"
+require "autotest/fsevent"
+
+Autotest.add_hook :initialize do |at|
+  at.add_mapping(%r%^spec/(docbook_xsl_wrapper)/.*rb$%) {|filename, _|
+    filename
+  }
+end
+
