@@ -1,5 +1,4 @@
 require "docbook_xsl_wrapper/version"
+require 'docbook_xsl_wrapper/epub'
+require 'docbook_xsl_wrapper/options'
 
-module DocbookXslWrapper
-  require 'docbook_xsl_wrapper/epub'
-end
