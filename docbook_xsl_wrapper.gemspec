@@ -18,8 +18,5 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '~> 1.9.3'
 
-  gem.add_development_dependency('rspec', '~> 2.12.0')
-  gem.add_development_dependency('autotest-standalone')
-  gem.add_development_dependency('autotest-growl')
-  gem.add_development_dependency('autotest-fsevent')
+  gem.add_development_dependency('rspec', '~> 2.13.0')
 end
