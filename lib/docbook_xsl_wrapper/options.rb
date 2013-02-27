@@ -78,8 +78,15 @@ module DocbookXslWrapper
         puts "No DocBook XML file(s) specified"
         exit
       end
+      options.output = epub_filename_from_given_filename(options.docbook) unless options.output
 
       options
+    end
+
+  private
+
+    def self.epub_filename_from_given_filename(filename)
+      File.join(File.dirname(filename), File.basename(filename, File.extname(filename)) + ".epub")
     end
 
   end

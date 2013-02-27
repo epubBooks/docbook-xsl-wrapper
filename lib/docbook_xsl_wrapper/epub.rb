@@ -7,10 +7,10 @@ module DocbookXslWrapper
     attr_reader :destination
 
     def initialize(args)
-      @docbook     = args[:docbook]
+      @docbook     = args[:options].docbook
       @destination = args[:destination] || ".epubtmp#{Time.now.to_f.to_s}"
-      @css         = args[:css]
-      @fonts       = args[:fonts]
+      @css         = args[:options].css
+      @fonts       = args[:options].fonts
 
       @oebps_directory    = File.join(@destination, 'OEBPS')
       @meta_inf_directory = File.join(@destination, 'META-INF')
@@ -22,8 +22,8 @@ module DocbookXslWrapper
       @callout_ext        = '.png'
       @to_delete          = []
 
-      if args[:customization]
-        @stylesheet = File.expand_path(args[:customization])
+      if args[:options].customization
+        @stylesheet = File.expand_path(args[:options].customization)
       else
         @stylesheet = File.join(docbook_uri, 'epub', 'docbook.xsl')
       end
@@ -32,20 +32,6 @@ module DocbookXslWrapper
     def render_to_file(output_file, verbose=false)
       render_to_epub(output_file, verbose)
       bundle_epub(output_file, verbose)
-      cleanup_files(@to_delete)
-    end
-
-    def self.invalid?(file)
-      # Obnoxiously, we can't just check for a non-zero output...
-      cmd = %Q(epubcheck "#{file}")
-      out = `#{cmd} 2>&1`
-
-      if $?.to_i == 0
-        return false
-      else
-        STDERR.puts out if $DEBUG
-        return out
-      end
     end
 
   private
@@ -181,13 +167,6 @@ module DocbookXslWrapper
       File.open(mimetype_filename, "w") {|f| f.print "application/epub+zip"}
       @to_delete << mimetype_filename
       return File.basename(mimetype_filename)
-    end
-
-    def cleanup_files(file_list)
-      file_list.flatten.each {|f|
-        # Yikes
-        FileUtils.rm_r(f, :force => true )
-      }
     end
 
     # Returns an Array of all of the (image) @filerefs in a document

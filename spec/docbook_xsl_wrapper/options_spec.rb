@@ -9,13 +9,16 @@ module DocbookXslWrapper
         options.css.should be nil
         options.customization.should be nil
         options.fonts.should eql []
-        options.output.should be nil
         options.debug.should be false
         options.verbose.should be false
       end
       it "should assign docbook with the XML file path" do
         options = Options.parse(['etext.xml'])
         options.docbook.should eql 'etext.xml'
+      end
+      it "should set the EPUB output filename from the XML filename" do
+        options = Options.parse(['/path/to/etext.xml'])
+        options.output.should eql '/path/to/etext.epub'
       end
 
       context "when verbose option" do

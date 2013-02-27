@@ -2,26 +2,26 @@
 
 $LOAD_PATH << File.expand_path(File.dirname(__FILE__) + '/../lib')
 
-require 'fileutils'
 require 'tmpdir'
 require 'docbook_xsl_wrapper'
 
 
 options = DocbookXslWrapper::Options.parse(ARGV)
 
-
 unless File.exist?(options.docbook)
   raise ArgumentError.new("File #{options.docbook} does not exist")
 end
 
-dir = File.expand_path(File.join(Dir.tmpdir, ".epubtmp#{Time.now.to_f.to_s}"))
-FileUtils.mkdir_p(dir)
-epub = DocbookXslWrapper::Epub.new(docbook: options.docbook, destination: dir, css: options.css, customization: options.customization, fonts: options.fonts)
+options = options
+tmp_dir = Dir.mktmpdir
 
-if options.output
+begin
+  epub = DocbookXslWrapper::Epub.new(options: options, destination: tmp_dir)
   epub_file = options.output
-else
-  epub_file = File.join(File.dirname(options.docbook), File.basename(options.docbook, ".xml") + ".epub")
+
+  puts "Rendering DocBook file #{options.docbook} to #{epub_file}" if options.verbose
+
+  epub.render_to_file(epub_file)
+ensure
+  FileUtils.remove_entry_secure tmp_dir
 end
-puts "Rendering DocBook file #{options.docbook} to #{epub_file}" if options.verbose
-epub.render_to_file(epub_file)
