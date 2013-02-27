@@ -6,7 +6,15 @@ module DocbookXslWrapper
   class Epub
     attr_reader :destination
 
-    def initialize(docbook, destination=nil, css=nil, customization=nil, fonts=[])
+    def initialize(args)
+      @docbook     = args[:docbook]
+      @destination = args[:destination] || ".epubtmp#{Time.now.to_f.to_s}"
+      @css         = args[:css]
+      @fonts       = args[:fonts]
+
+      @oebps_directory    = File.join(@destination, 'OEBPS')
+      @meta_inf_directory = File.join(@destination, 'META-INF')
+
       docbook_uri         = 'http://docbook.sourceforge.net/release/xsl/current'
       @callout_path       = File.join('images', 'callouts')
       @callout_full_path  = File.join(docbook_uri, @callout_path)
@@ -14,22 +22,10 @@ module DocbookXslWrapper
       @callout_ext        = '.png'
       @to_delete          = []
 
-      @docbook = docbook
-      @destination = destination || ".epubtmp#{Time.now.to_f.to_s}"
-      @css = css ? File.expand_path(css) : css
-      @fonts = fonts
-
-      @oebps_directory    = File.join(@destination, 'OEBPS')
-      @meta_inf_directory = File.join(@destination, 'META-INF')
-
-      if customization
-        @stylesheet = File.expand_path(customization)
+      if args[:customization]
+        @stylesheet = File.expand_path(args[:customization])
       else
         @stylesheet = File.join(docbook_uri, 'epub', 'docbook.xsl')
-      end
-
-      unless File.exist?(@docbook)
-        raise ArgumentError.new("File #{@docbook} does not exist")
       end
     end
 

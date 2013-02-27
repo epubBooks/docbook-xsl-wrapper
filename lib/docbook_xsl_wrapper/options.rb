@@ -12,7 +12,7 @@ module DocbookXslWrapper
       options.output        = nil
       options.debug         = false
       options.verbose       = false
-      options.docbooks      = []
+      options.docbook       = nil
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: #{opts.program_name} [OPTIONS] [DocBook Files]"
@@ -73,8 +73,8 @@ module DocbookXslWrapper
       args = ['-h'] if args.empty?
       opts.parse!(args)
 
-      options.docbooks = args
-      if options.docbooks.empty?
+      options.docbook = args.first
+      unless options.docbook
         puts "No DocBook XML file(s) specified"
         exit
       end

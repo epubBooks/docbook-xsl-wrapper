@@ -13,9 +13,9 @@ module DocbookXslWrapper
         options.debug.should be false
         options.verbose.should be false
       end
-      it "should put the XML file in the docbooks array" do
+      it "should assign docbook with the XML file path" do
         options = Options.parse(['etext.xml'])
-        options.docbooks.should eql ['etext.xml']
+        options.docbook.should eql 'etext.xml'
       end
 
       context "when verbose option" do

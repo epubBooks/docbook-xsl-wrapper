@@ -9,16 +9,19 @@ require 'docbook_xsl_wrapper'
 
 options = DocbookXslWrapper::Options.parse(ARGV)
 
-options.docbooks.each {|docbook_file|
-  dir = File.expand_path(File.join(Dir.tmpdir, ".epubtmp#{Time.now.to_f.to_s}"))
-  FileUtils.mkdir_p(dir)
-  e = DocbookXslWrapper::Epub.new(docbook_file, dir, options.css, options.customization, options.fonts)
 
-  if options.output
-    epub_file = options.output
-  else
-    epub_file = File.join(File.dirname(docbook_file), File.basename(docbook_file, ".xml") + ".epub")
-  end
-  puts "Rendering DocBook file #{docbook_file} to #{epub_file}" if options.verbose
-  e.render_to_file(epub_file)
-}
+unless File.exist?(options.docbook)
+  raise ArgumentError.new("File #{options.docbook} does not exist")
+end
+
+dir = File.expand_path(File.join(Dir.tmpdir, ".epubtmp#{Time.now.to_f.to_s}"))
+FileUtils.mkdir_p(dir)
+epub = DocbookXslWrapper::Epub.new(docbook: options.docbook, destination: dir, css: options.css, customization: options.customization, fonts: options.fonts)
+
+if options.output
+  epub_file = options.output
+else
+  epub_file = File.join(File.dirname(options.docbook), File.basename(options.docbook, ".xml") + ".epub")
+end
+puts "Rendering DocBook file #{options.docbook} to #{epub_file}" if options.verbose
+epub.render_to_file(epub_file)
