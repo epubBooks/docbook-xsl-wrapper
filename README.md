@@ -11,7 +11,7 @@ At present the wrapper will only convert DocBook to EPUB 2 and is
 intended to be run from the command-line - future versions will have more
 functionality (see Future Improvements).
 
-The original Ruby script can be found at: http://docbook.sourceforge.net/release/xsl/current/epub/bin/
+The original Ruby script can be found at: http://docbook.sourceforge.net/release/xsl/1.78.0/epub/bin/
 
 
 ## Requirements
