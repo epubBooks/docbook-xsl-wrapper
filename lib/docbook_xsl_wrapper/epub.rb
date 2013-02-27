@@ -4,39 +4,32 @@ require 'rexml/parsers/pullparser'
 module DocbookXslWrapper
 
   class Epub
-    DOCBOOK_URI = "http://docbook.sourceforge.net/release/xsl/current"
-    CHECKER = "epubcheck"
-    STYLESHEET = File.join(DOCBOOK_URI, "epub", "docbook.xsl")
-    CALLOUT_PATH = File.join('images', 'callouts')
-    CALLOUT_FULL_PATH = File.join(DOCBOOK_URI, CALLOUT_PATH)
-    CALLOUT_LIMIT = 15
-    CALLOUT_EXT = ".png"
-    XSLT_PROCESSOR = "xsltproc"
-    OUTPUT_DIR = ".epubtmp#{Time.now.to_f.to_s}"
-    MIMETYPE = "application/epub+zip"
-    META_DIR = "META-INF"
-    OEBPS_DIR = "OEBPS"
-    ZIPPER = "zip"
+    attr_reader :destination
 
-    attr_reader :output_dir
+    def initialize(docbook, destination=nil, css=nil, customization=nil, fonts=[])
+      docbook_uri         = 'http://docbook.sourceforge.net/release/xsl/current'
+      @callout_path       = File.join('images', 'callouts')
+      @callout_full_path  = File.join(docbook_uri, @callout_path)
+      @callout_limit      = 15
+      @callout_ext        = '.png'
+      @to_delete          = []
 
-    def initialize(docbook_file, output_dir=OUTPUT_DIR, css_file=nil, customization_layer=nil, embedded_fonts=[])
-      @docbook_file = docbook_file
-      @output_dir = output_dir
-      @meta_dir  = File.join(@output_dir, META_DIR)
-      @oebps_dir = File.join(@output_dir, OEBPS_DIR)
-      @css_file = css_file ? File.expand_path(css_file) : css_file
-      @embedded_fonts = embedded_fonts
-      @to_delete = []
+      @docbook = docbook
+      @destination = destination || ".epubtmp#{Time.now.to_f.to_s}"
+      @css = css ? File.expand_path(css) : css
+      @fonts = fonts
 
-      if customization_layer
-        @stylesheet = File.expand_path(customization_layer)
+      @oebps_directory    = File.join(@destination, 'OEBPS')
+      @meta_inf_directory = File.join(@destination, 'META-INF')
+
+      if customization
+        @stylesheet = File.expand_path(customization)
       else
-        @stylesheet = STYLESHEET
+        @stylesheet = File.join(docbook_uri, 'epub', 'docbook.xsl')
       end
 
-      unless File.exist?(@docbook_file)
-        raise ArgumentError.new("File #{@docbook_file} does not exist")
+      unless File.exist?(@docbook)
+        raise ArgumentError.new("File #{@docbook} does not exist")
       end
     end
 
@@ -48,37 +41,38 @@ module DocbookXslWrapper
 
     def self.invalid?(file)
       # Obnoxiously, we can't just check for a non-zero output...
-      cmd = %Q(#{CHECKER} "#{file}")
-      output = `#{cmd} 2>&1`
+      cmd = %Q(epubcheck "#{file}")
+      out = `#{cmd} 2>&1`
 
       if $?.to_i == 0
         return false
       else
-        STDERR.puts output if $DEBUG
-        return output
+        STDERR.puts out if $DEBUG
+        return out
       end
     end
 
-    private
+  private
+
     def render_to_epub(output_file, verbose)
       @collapsed_docbook_file = collapse_docbook()
 
       chunk_quietly =   "--stringparam chunk.quietly " + (verbose ? '0' : '1')
-      callout_path =    "--stringparam callout.graphics.path #{CALLOUT_PATH}/"
-      callout_limit =   "--stringparam callout.graphics.number.limit #{CALLOUT_LIMIT}"
-      callout_ext =     "--stringparam callout.graphics.extension #{CALLOUT_EXT}"
-      html_stylesheet = "--stringparam html.stylesheet #{File.basename(@css_file)}" if @css_file
-      base =            "--stringparam base.dir #{OEBPS_DIR}/"
-      unless @embedded_fonts.empty?
-        embedded_fonts = @embedded_fonts.map {|f| File.basename(f)}.join(',')
-        font =            "--stringparam epub.embedded.fonts \"#{embedded_fonts}\""
+      co_path =    "--stringparam callout.graphics.path #{@callout_path}/"
+      co_limit =   "--stringparam callout.graphics.number.limit #{@callout_limit}"
+      co_ext =     "--stringparam callout.graphics.extension #{@callout_ext}"
+      html_stylesheet = "--stringparam html.stylesheet #{File.basename(@css)}" if @css
+      base =            "--stringparam base.dir #{@oebps_directory}/"
+      unless @fonts.empty?
+        fonts = @fonts.map {|f| File.basename(f)}.join(',')
+        font =            "--stringparam epub.embedded.fonts \"#{fonts}\""
       end
-      meta =            "--stringparam epub.metainf.dir #{META_DIR}/"
-      oebps =           "--stringparam epub.oebps.dir #{OEBPS_DIR}/"
+      meta =            "--stringparam epub.metainf.dir #{@meta_inf_directory}/"
+      oebps =           "--stringparam epub.oebps.dir #{@oebps_directory}/"
       options = [chunk_quietly,
-                 callout_path,
-                 callout_limit,
-                 callout_ext,
+                 co_path,
+                 co_limit,
+                 co_ext,
                  base,
                  font,
                  meta,
@@ -86,46 +80,46 @@ module DocbookXslWrapper
                  html_stylesheet,
                 ].join(" ")
       # Double-quote stylesheet & file to help Windows cmd.exe
-      db2epub_cmd = %Q(cd "#{@output_dir}" && #{XSLT_PROCESSOR} #{options} "#{@stylesheet}" "#{@collapsed_docbook_file}")
+      db2epub_cmd = %Q(cd "#{@destination}" && xsltproc #{options} "#{@stylesheet}" "#{@collapsed_docbook_file}")
       STDERR.puts db2epub_cmd if $DEBUG
       success = system(db2epub_cmd)
       raise "Could not render as .epub to #{output_file} (#{db2epub_cmd})" unless success
-      @to_delete << Dir["#{@meta_dir}/*"]
-      @to_delete << Dir["#{@oebps_dir}/*"]
+      @to_delete << Dir["#{@meta_inf_directory}/*"]
+      @to_delete << Dir["#{@oebps_directory}/*"]
     end
 
     def bundle_epub(output_file, verbose)
-
       quiet = verbose ? "" : "-q"
       mimetype_filename = write_mimetype()
-      meta   = File.basename(@meta_dir)
-      oebps  = File.basename(@oebps_dir)
+      meta   = File.basename(@meta_inf_directory)
+      oebps  = File.basename(@oebps_directory)
       images = copy_images()
       csses  = copy_csses()
       fonts  = copy_fonts()
       callouts = copy_callouts()
       # zip -X -r ../book.epub mimetype META-INF OEBPS
       # Double-quote stylesheet & file to help Windows cmd.exe
-      zip_cmd = %Q(cd "#{@output_dir}" &&  #{ZIPPER} #{quiet} -X -r  "#{File.expand_path(output_file)}" "#{mimetype_filename}" "#{meta}" "#{oebps}")
+      zip_cmd = %Q(cd "#{@destination}" && zip #{quiet} -X -r  "#{File.expand_path(output_file)}" "#{mimetype_filename}" "#{meta}" "#{oebps}")
       puts zip_cmd if $DEBUG
       success = system(zip_cmd)
       raise "Could not bundle into .epub file to #{output_file}" unless success
     end
 
-    # Input must be collapsed because REXML couldn't find figures in files that
-    # were XIncluded or added by ENTITY
-    #   http://sourceforge.net/tracker/?func=detail&aid=2750442&group_id=21935&atid=373747
     def collapse_docbook
+      # Input must be collapsed because REXML couldn't find figures in files that
+      # were XIncluded or added by ENTITY
+      #   http://sourceforge.net/tracker/?func=detail&aid=2750442&group_id=21935&atid=373747
+
       # Double-quote stylesheet & file to help Windows cmd.exe
-      collapsed_file = File.join(File.expand_path(File.dirname(@docbook_file)),
-                                 '.collapsed.' + File.basename(@docbook_file))
-      entity_collapse_command = %Q(xmllint --loaddtd --noent -o "#{collapsed_file}" "#{@docbook_file}")
+      collapsed_file = File.join(File.expand_path(File.dirname(@docbook)),
+                                 '.collapsed.' + File.basename(@docbook))
+      entity_collapse_command = %Q(xmllint --loaddtd --noent -o "#{collapsed_file}" "#{@docbook}")
       entity_success = system(entity_collapse_command)
-      raise "Could not collapse named entites in #{@docbook_file}" unless entity_success
+      raise "Could not collapse named entites in #{@docbook}" unless entity_success
 
       xinclude_collapse_command = %Q(xmllint --xinclude -o "#{collapsed_file}" "#{collapsed_file}")
       xinclude_success = system(xinclude_collapse_command)
-      raise "Could not collapse XIncludes in #{@docbook_file}" unless xinclude_success
+      raise "Could not collapse XIncludes in #{@docbook}" unless xinclude_success
 
       @to_delete << collapsed_file
       return collapsed_file
@@ -134,9 +128,9 @@ module DocbookXslWrapper
     def copy_callouts
       new_callout_images = []
       if has_callouts?
-        calloutglob = "#{CALLOUT_FULL_PATH}/*#{CALLOUT_EXT}"
+        calloutglob = "#{@callout_full_path}/*#{@callout_ext}"
         Dir.glob(calloutglob).each {|img|
-          img_new_filename = File.join(@oebps_dir, CALLOUT_PATH, File.basename(img))
+          img_new_filename = File.join(@oebps_directory, @callout_path, File.basename(img))
 
           # TODO: What to rescue for these two?
           FileUtils.mkdir_p(File.dirname(img_new_filename))
@@ -150,8 +144,8 @@ module DocbookXslWrapper
 
     def copy_fonts
       new_fonts = []
-      @embedded_fonts.each {|font_file|
-        font_new_filename = File.join(@oebps_dir, File.basename(font_file))
+      @fonts.each {|font_file|
+        font_new_filename = File.join(@oebps_directory, File.basename(font_file))
         FileUtils.cp(font_file, font_new_filename)
         new_fonts << font_file
       }
@@ -159,9 +153,9 @@ module DocbookXslWrapper
     end
 
     def copy_csses
-      if @css_file
-        css_new_filename = File.join(@oebps_dir, File.basename(@css_file))
-        FileUtils.cp(@css_file, css_new_filename)
+      if @css
+        css_new_filename = File.join(@oebps_directory, File.basename(@css))
+        FileUtils.cp(@css, css_new_filename)
       end
     end
 
@@ -172,8 +166,8 @@ module DocbookXslWrapper
         # TODO: It'd be cooler if we had a filetype lookup rather than just
         # extension
         if img =~ /\.(svg|png|gif|jpe?g|xml)/i
-          img_new_filename = File.join(@oebps_dir, img)
-          img_full = File.join(File.expand_path(File.dirname(@docbook_file)), img)
+          img_new_filename = File.join(@oebps_directory, img)
+          img_full = File.join(File.expand_path(File.dirname(@docbook)), img)
 
           # TODO: What to rescue for these two?
           FileUtils.mkdir_p(File.dirname(img_new_filename))
@@ -187,8 +181,8 @@ module DocbookXslWrapper
     end
 
     def write_mimetype
-      mimetype_filename = File.join(@output_dir, "mimetype")
-      File.open(mimetype_filename, "w") {|f| f.print MIMETYPE}
+      mimetype_filename = File.join(@destination, "mimetype")
+      File.open(mimetype_filename, "w") {|f| f.print "application/epub+zip"}
       @to_delete << mimetype_filename
       return File.basename(mimetype_filename)
     end
@@ -224,5 +218,6 @@ module DocbookXslWrapper
       end
       return false
     end
+
   end
 end
