@@ -6,27 +6,20 @@ module DocbookXslWrapper
   class Epub
     attr_reader :destination
 
-    def initialize(args)
-      @docbook     = args[:options].docbook
-      @destination = args[:destination] || ".epubtmp#{Time.now.to_f.to_s}"
-      @css         = args[:options].css
-      @fonts       = args[:options].fonts
+    def initialize(options)
+      @destination = options.destination
+      @docbook     = options.docbook
+      @css         = options.css
+      @fonts       = options.fonts
 
       @oebps_directory    = File.join(@destination, 'OEBPS')
       @meta_inf_directory = File.join(@destination, 'META-INF')
 
-      docbook_uri         = 'http://docbook.sourceforge.net/release/xsl/current'
-      @callout_path       = File.join('images', 'callouts')
-      @callout_full_path  = File.join(docbook_uri, @callout_path)
-      @callout_limit      = 15
-      @callout_ext        = '.png'
-      @to_delete          = []
-
-      if args[:options].customization
-        @stylesheet = File.expand_path(args[:options].customization)
-      else
-        @stylesheet = File.join(docbook_uri, 'epub', 'docbook.xsl')
-      end
+      @callout_path      = options.callout_path
+      @callout_full_path = options.callout_full_path
+      @callout_limit     = options.callout_limit
+      @callout_ext       = options.callout_ext
+      @stylesheet        = options.custom_xsl || File.join(options.docbook_xsl_root, 'epub', 'docbook.xsl')
     end
 
     def render_to_file(output_file, verbose=false)
@@ -66,8 +59,6 @@ module DocbookXslWrapper
       STDERR.puts db2epub_cmd if $DEBUG
       success = system(db2epub_cmd)
       raise "Could not render as .epub to #{output_file} (#{db2epub_cmd})" unless success
-      @to_delete << Dir["#{@meta_inf_directory}/*"]
-      @to_delete << Dir["#{@oebps_directory}/*"]
     end
 
     def bundle_epub(output_file, verbose)
@@ -103,7 +94,6 @@ module DocbookXslWrapper
       xinclude_success = system(xinclude_collapse_command)
       raise "Could not collapse XIncludes in #{@docbook}" unless xinclude_success
 
-      @to_delete << collapsed_file
       return collapsed_file
     end
 
@@ -117,7 +107,6 @@ module DocbookXslWrapper
           # TODO: What to rescue for these two?
           FileUtils.mkdir_p(File.dirname(img_new_filename))
           FileUtils.cp(img, img_new_filename)
-          @to_delete << img_new_filename
           new_callout_images << img
         }
       end
@@ -155,7 +144,6 @@ module DocbookXslWrapper
           FileUtils.mkdir_p(File.dirname(img_new_filename))
           puts(img_full + ": " + img_new_filename) if $DEBUG
           FileUtils.cp(img_full, img_new_filename)
-          @to_delete << img_new_filename
           new_images << img_full
         end
       }
@@ -165,7 +153,6 @@ module DocbookXslWrapper
     def write_mimetype
       mimetype_filename = File.join(@destination, "mimetype")
       File.open(mimetype_filename, "w") {|f| f.print "application/epub+zip"}
-      @to_delete << mimetype_filename
       return File.basename(mimetype_filename)
     end
 

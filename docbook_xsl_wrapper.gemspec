@@ -8,7 +8,6 @@ Gem::Specification.new do |gem|
   gem.email         = ["m@mikecook.co.uk"]
   gem.summary       = %q{Wrapper for the DocBook XSL stylesheets for easy XML to EPUB}
   gem.description   = %q{DocBook XSL Wrapper let's you easily convert DocBook XML to EPUB using the official DocBook XSL stylesheets.}
-  gem.homepage      = ""
 
   gem.platform      = Gem::Platform::RUBY
   gem.files         = `git ls-files`.split($\)

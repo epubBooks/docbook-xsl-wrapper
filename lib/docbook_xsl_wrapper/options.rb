@@ -6,13 +6,19 @@ module DocbookXslWrapper
 
     def self.parse(args)
       options = OpenStruct.new
-      options.css           = nil
-      options.customization = nil
-      options.fonts         = []
-      options.output        = nil
-      options.debug         = false
-      options.verbose       = false
-      options.docbook       = nil
+      options.docbook_xsl_root  = 'http://docbook.sourceforge.net/release/xsl/current'
+      options.callout_path      = File.join('images', 'callouts')
+      options.callout_full_path = File.join(options.docbook_xsl_root, options.callout_path)
+      options.callout_limit     = 15
+      options.callout_ext       = '.png'
+
+      options.css               = nil
+      options.custom_xsl        = nil
+      options.fonts             = []
+      options.output            = nil
+      options.debug             = false
+      options.verbose           = false
+      options.docbook           = nil
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: #{opts.program_name} [OPTIONS] [DocBook Files]"
@@ -31,8 +37,8 @@ module DocbookXslWrapper
           options.css = css
         end
 
-        opts.on("-s", "--stylesheet [XSL FILE]", "Use XSL FILE as a customization layer (imports epub/docbook.xsl).") do |xsl|
-          options.customization = xsl
+        opts.on("-s", "--stylesheet [XSL FILE]", "Use XSL FILE as a custom_xsl layer (imports epub/docbook.xsl).") do |xsl|
+          options.custom_xsl = xsl
         end
 
         opts.on("-f", "--font [OTF FILE]", "Embed OTF FILE in .epub.") do |otf|

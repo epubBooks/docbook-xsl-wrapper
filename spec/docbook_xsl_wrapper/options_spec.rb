@@ -44,9 +44,9 @@ module DocbookXslWrapper
         end
       end
       context "when customization stylsheet given option" do
-        it "should set .customiztion with the value" do
+        it "should set .custom_xsl with the value" do
           options = Options.parse(['--stylesheet', 'some.xsl', 'etext.xml'])
-          options.customization.should eq 'some.xsl'
+          options.custom_xsl.should eq 'some.xsl'
         end
       end
       context "when fonts option" do
