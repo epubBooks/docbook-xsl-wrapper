@@ -11,17 +11,17 @@ module DocbookXslWrapper
       @options.custom_xsl = File.join(options.docbook_xsl_root, 'epub', 'docbook.xsl') unless options.custom_xsl
     end
 
-    def render_to_file(output_file, verbose=false)
-      render_to_epub(output_file, verbose)
-      bundle_epub(output_file, verbose)
+    def render_to_file
+      render_to_epub
+      bundle_epub
     end
 
   private
 
-    def render_to_epub(output_file, verbose)
+    def render_to_epub
       @collapsed_docbook_file = collapse_docbook()
 
-      chunk_quietly =   "--stringparam chunk.quietly " + (verbose ? '0' : '1')
+      chunk_quietly =   "--stringparam chunk.quietly " + (options.verbose ? '0' : '1')
       co_path =    "--stringparam callout.graphics.path #{options.callout_path}/"
       co_limit =   "--stringparam callout.graphics.number.limit #{options.callout_limit}"
       co_ext =     "--stringparam callout.graphics.extension #{options.callout_ext}"
@@ -47,11 +47,11 @@ module DocbookXslWrapper
       db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{parser_opts} "#{options.custom_xsl}" "#{@collapsed_docbook_file}")
       STDERR.puts db2epub_cmd if $DEBUG
       success = system(db2epub_cmd)
-      raise "Could not render as .epub to #{output_file} (#{db2epub_cmd})" unless success
+      raise "Could not render as .epub to #{options.output} (#{db2epub_cmd})" unless success
     end
 
-    def bundle_epub(output_file, verbose)
-      quiet = verbose ? "" : "-q"
+    def bundle_epub
+      quiet = options.verbose ? "" : "-q"
       mimetype_filename = write_mimetype()
       meta   = File.basename(meta_inf_directory)
       oebps  = File.basename(oebps_directory)
@@ -61,10 +61,10 @@ module DocbookXslWrapper
       callouts = copy_callouts()
       # zip -X -r ../book.epub mimetype META-INF OEBPS
       # Double-quote stylesheet & file to help Windows cmd.exe
-      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(output_file)}" "#{mimetype_filename}" "#{meta}" "#{oebps}")
+      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta}" "#{oebps}")
       puts zip_cmd if $DEBUG
       success = system(zip_cmd)
-      raise "Could not bundle into .epub file to #{output_file}" unless success
+      raise "Could not bundle into .epub file to #{options.output}" unless success
     end
 
     def collapse_docbook
