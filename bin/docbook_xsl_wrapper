@@ -19,7 +19,7 @@ begin
   puts "Rendering DocBook file #{options.docbook} to #{options.output}\n\n" if options.verbose
 
   epub = DocbookXslWrapper::Epub.new(options)
-  epub.render_to_file
+  epub.create
 ensure
   FileUtils.remove_entry_secure tmp_dir
 end

@@ -11,7 +11,7 @@ module DocbookXslWrapper
       @options.custom_xsl = File.join(options.docbook_xsl_root, 'epub', 'docbook.xsl') unless options.custom_xsl
     end
 
-    def render_to_file
+    def create
       render_to_epub
       bundle_epub
     end
