@@ -122,8 +122,8 @@ module DocbookXslWrapper
 
     def copy_images
       images = Array.new
-      get_images_refs_from_xml.each do |image|
-        images << copy_image(image) if image.match(/\.(jpe?g|png|gif|svg|xml)\Z/i)
+      xml_image_references.each do |image|
+        images << copy_image(image)
       end
       images
     end
@@ -146,16 +146,21 @@ module DocbookXslWrapper
       return File.basename(mimetype_filename)
     end
 
-    def get_images_refs_from_xml
+    def xml_image_references
       parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
-      image_refs = []
+      references = Array.new
       while parser.has_next?
-        el = parser.pull
-        if el.start_element? and (el[0] == "imagedata" or el[0] == "graphic")
-          image_refs << el[1]['fileref']
-        end
+        element = parser.pull
+        references << element[1]['fileref'] if is_valid_image_reference?(element)
       end
-      return image_refs.uniq
+      references.uniq
+    end
+
+    def is_valid_image_reference?(element)
+      return false unless element.start_element?
+      return false unless element[0] == 'imagedata' or element[0] == 'graphic'
+      return true if element[1]['fileref'].match(/\.(jpe?g|png|gif|svg|xml)\Z/i)
+      false
     end
 
     # Returns true if the document has code callouts
