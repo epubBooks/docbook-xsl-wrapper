@@ -23,7 +23,7 @@ module DocbookXslWrapper
 
       # Double-quote stylesheet & file to help Windows cmd.exe
       db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{xsl_parser_options} "#{options.custom_xsl}" "#{@collapsed_docbook_file}")
-      STDERR.puts db2epub_cmd if $DEBUG
+      STDERR.puts db2epub_cmd if options.debug
       success = system(db2epub_cmd)
       raise "Could not render as .epub to #{options.output} (#{db2epub_cmd})" unless success
     end
@@ -34,12 +34,12 @@ module DocbookXslWrapper
       co_limit        = "--stringparam callout.graphics.number.limit #{options.callout_limit}"
       co_ext          = "--stringparam callout.graphics.extension #{options.callout_ext}"
       html_stylesheet = "--stringparam html.stylesheet #{File.basename(options.css)}" if options.css
-      base            = "--stringparam base.dir #{oebps_directory}/"
+      base            = "--stringparam base.dir #{oebps_path}/"
       unless options.fonts.empty?
         fonts = options.fonts.map {|f| File.basename(f)}.join(',')
         font  = "--stringparam epub.embedded.fonts \"#{fonts}\""
       end
-      meta  = "--stringparam epub.metainf.dir #{meta_inf_directory}/"
+      meta  = "--stringparam epub.metainf.dir #{meta_inf_path}/"
       oebps = "--stringparam epub.oebps.dir #{oebps_directory}/"
       [chunk_quietly,
        co_path,
@@ -56,16 +56,14 @@ module DocbookXslWrapper
     def bundle_epub
       quiet = options.verbose ? "" : "-q"
       mimetype_filename = write_mimetype()
-      meta   = File.basename(meta_inf_directory)
-      oebps  = File.basename(oebps_directory)
       images = copy_images()
       csses  = copy_csses()
       fonts  = copy_fonts()
       callouts = copy_callouts()
       # zip -X -r ../book.epub mimetype META-INF OEBPS
       # Double-quote stylesheet & file to help Windows cmd.exe
-      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta}" "#{oebps}")
-      puts zip_cmd if $DEBUG
+      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta_inf_directory}" "#{oebps_directory}")
+      puts zip_cmd if options.debug
       success = system(zip_cmd)
       raise "Could not bundle into .epub file to #{options.output}" unless success
     end
@@ -94,7 +92,7 @@ module DocbookXslWrapper
       if has_callouts?
         calloutglob = "#{options.callout_full_path}/*#{options.callout_ext}"
         Dir.glob(calloutglob).each {|img|
-          img_new_filename = File.join(oebps_directory, options.callout_path, File.basename(img))
+          img_new_filename = File.join(oebps_path, options.callout_path, File.basename(img))
 
           # TODO: What to rescue for these two?
           FileUtils.mkdir_p(File.dirname(img_new_filename))
@@ -108,7 +106,7 @@ module DocbookXslWrapper
     def copy_fonts
       new_fonts = []
       options.fonts.each {|font_file|
-        font_new_filename = File.join(oebps_directory, File.basename(font_file))
+        font_new_filename = File.join(oebps_path, File.basename(font_file))
         FileUtils.cp(font_file, font_new_filename)
         new_fonts << font_file
       }
@@ -117,7 +115,7 @@ module DocbookXslWrapper
 
     def copy_csses
       if options.css
-        css_new_filename = File.join(oebps_directory, File.basename(options.css))
+        css_new_filename = File.join(oebps_path, File.basename(options.css))
         FileUtils.cp(options.css, css_new_filename)
       end
     end
@@ -129,12 +127,12 @@ module DocbookXslWrapper
         # TODO: It'd be cooler if we had a filetype lookup rather than just
         # extension
         if img =~ /\.(svg|png|gif|jpe?g|xml)/i
-          img_new_filename = File.join(oebps_directory, img)
+          img_new_filename = File.join(oebps_path, img)
           img_full = File.join(File.expand_path(File.dirname(options.docbook)), img)
 
           # TODO: What to rescue for these two?
           FileUtils.mkdir_p(File.dirname(img_new_filename))
-          puts(img_full + ": " + img_new_filename) if $DEBUG
+          puts(img_full + ": " + img_new_filename) if options.debug
           FileUtils.cp(img_full, img_new_filename)
           new_images << img_full
         end
@@ -174,11 +172,19 @@ module DocbookXslWrapper
     end
 
     def oebps_directory
-      @oebps_directory ||= File.join(options.destination, 'OEBPS')
+      'OEBPS'
+    end
+
+    def oebps_path
+      @oebps_path ||= File.join(options.destination, oebps_directory)
     end
 
     def meta_inf_directory
-      @meta_inf_directory ||= File.join(options.destination, 'META-INF')
+      'META-INF'
+    end
+
+    def meta_inf_path
+      @meta_inf_path ||= File.join(options.destination, meta_inf_directory)
     end
 
   end
