@@ -92,11 +92,11 @@ module DocbookXslWrapper
       if has_callouts?
         calloutglob = "#{options.callout_full_path}/*#{options.callout_ext}"
         Dir.glob(calloutglob).each {|img|
-          img_new_filename = File.join(oebps_path, options.callout_path, File.basename(img))
+          new_filename = File.join(oebps_path, options.callout_path, File.basename(img))
 
           # TODO: What to rescue for these two?
-          FileUtils.mkdir_p(File.dirname(img_new_filename))
-          FileUtils.cp(img, img_new_filename)
+          FileUtils.mkdir_p(File.dirname(new_filename))
+          FileUtils.cp(img, new_filename)
           new_callout_images << img
         }
       end
@@ -121,23 +121,23 @@ module DocbookXslWrapper
     end
 
     def copy_images
-      image_references = get_image_refs()
-      new_images = []
-      image_references.each {|img|
-        # TODO: It'd be cooler if we had a filetype lookup rather than just
-        # extension
-        if img =~ /\.(svg|png|gif|jpe?g|xml)/i
-          img_new_filename = File.join(oebps_path, img)
-          img_full = File.join(File.expand_path(File.dirname(options.docbook)), img)
+      images = Array.new
+      get_images_refs_from_xml.each do |image|
+        images << copy_image(image) if image.match(/\.(jpe?g|png|gif|svg|xml)\Z/i)
+      end
+      images
+    end
 
-          # TODO: What to rescue for these two?
-          FileUtils.mkdir_p(File.dirname(img_new_filename))
-          puts(img_full + ": " + img_new_filename) if options.debug
-          FileUtils.cp(img_full, img_new_filename)
-          new_images << img_full
-        end
-      }
-      return new_images
+    def copy_image(image)
+      source_file      = File.join(File.expand_path(File.dirname(options.docbook)), image)
+      destination_file = File.join(oebps_path, image)
+
+      FileUtils.mkdir_p(File.dirname(destination_file))
+
+      puts "Copying image: #{source_file} to #{destination_file}" if options.debug
+      FileUtils.cp(source_file, destination_file)
+
+      destination_file
     end
 
     def write_mimetype
@@ -146,8 +146,7 @@ module DocbookXslWrapper
       return File.basename(mimetype_filename)
     end
 
-    # Returns an Array of all of the (image) @filerefs in a document
-    def get_image_refs
+    def get_images_refs_from_xml
       parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
       image_refs = []
       while parser.has_next?
