@@ -19,7 +19,7 @@ module DocbookXslWrapper
   private
 
     def render_to_epub
-      @collapsed_docbook_file = collapse_docbook()
+      @collapsed_docbook_file = collapse_docbook
 
       # Double-quote stylesheet & file to help Windows cmd.exe
       db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{xsl_parser_options} "#{options.custom_xsl}" "#{@collapsed_docbook_file}")
@@ -53,21 +53,6 @@ module DocbookXslWrapper
       ].join(" ")
     end
 
-    def bundle_epub
-      quiet = options.verbose ? "" : "-q"
-      mimetype_filename = write_mimetype()
-      images = copy_images()
-      csses  = copy_csses()
-      fonts  = copy_fonts()
-      callouts = copy_callouts()
-      # zip -X -r ../book.epub mimetype META-INF OEBPS
-      # Double-quote stylesheet & file to help Windows cmd.exe
-      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta_inf_directory}" "#{oebps_directory}")
-      puts zip_cmd if options.debug
-      success = system(zip_cmd)
-      raise "Could not bundle into .epub file to #{options.output}" unless success
-    end
-
     def collapse_docbook
       # Input must be collapsed because REXML couldn't find figures in files that
       # were XIncluded or added by ENTITY
@@ -84,40 +69,71 @@ module DocbookXslWrapper
       xinclude_success = system(xinclude_collapse_command)
       raise "Could not collapse XIncludes in #{options.docbook}" unless xinclude_success
 
-      return collapsed_file
+      collapsed_file
+    end
+
+    def bundle_epub
+      quiet = options.verbose ? "" : "-q"
+      mimetype_filename = write_mimetype
+      images = copy_images
+      csses  = copy_css
+      fonts  = copy_fonts
+      callouts = copy_callouts
+      # zip -X -r ../book.epub mimetype META-INF OEBPS
+      # Double-quote stylesheet & file to help Windows cmd.exe
+      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta_inf_directory}" "#{oebps_directory}")
+      puts zip_cmd if options.debug
+      success = system(zip_cmd)
+      raise "Could not bundle into .epub file to #{options.output}" unless success
+    end
+
+    def write_mimetype
+      filename = File.join(options.destination, "mimetype")
+      File.open(filename, "w") {|f| f.print "application/epub+zip"}
+      File.basename(filename)
     end
 
     def copy_callouts
-      new_callout_images = []
-      if has_callouts?
-        calloutglob = "#{options.callout_full_path}/*#{options.callout_ext}"
-        Dir.glob(calloutglob).each {|img|
-          new_filename = File.join(oebps_path, options.callout_path, File.basename(img))
+      return unless has_callouts?
 
-          # TODO: What to rescue for these two?
-          FileUtils.mkdir_p(File.dirname(new_filename))
-          FileUtils.cp(img, new_filename)
-          new_callout_images << img
-        }
+      images = Array.new
+      calloutglob = "#{options.callout_full_path}/*#{options.callout_ext}"
+      Dir.glob(calloutglob).each do |image|
+        new_filename = File.join(oebps_path, options.callout_path, File.basename(image))
+
+        # TODO: What to rescue for these two?
+        FileUtils.mkdir_p(File.dirname(new_filename))
+        FileUtils.cp(image, new_filename)
+        images << image
       end
-      return new_callout_images
+      images
+    end
+
+    # Returns true if the document has code callouts
+    def has_callouts?
+      parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
+      while parser.has_next?
+        element = parser.pull
+        return true if element.start_element? and (element[0] == "calloutlist" or element[0] == "co")
+      end
+      false
     end
 
     def copy_fonts
-      new_fonts = []
-      options.fonts.each {|font_file|
-        font_new_filename = File.join(oebps_path, File.basename(font_file))
-        FileUtils.cp(font_file, font_new_filename)
-        new_fonts << font_file
+      fonts = Array.new
+      options.fonts.each {|font|
+        new_filename = File.join(oebps_path, File.basename(font))
+        FileUtils.cp(font, new_filename)
+        fonts << font
       }
-      return new_fonts
+      fonts
     end
 
-    def copy_csses
-      if options.css
-        css_new_filename = File.join(oebps_path, File.basename(options.css))
-        FileUtils.cp(options.css, css_new_filename)
-      end
+    def copy_css
+      return unless options.css
+
+      filename = File.join(oebps_path, File.basename(options.css))
+      FileUtils.cp(options.css, filename)
     end
 
     def copy_images
@@ -140,12 +156,6 @@ module DocbookXslWrapper
       destination_file
     end
 
-    def write_mimetype
-      mimetype_filename = File.join(options.destination, "mimetype")
-      File.open(mimetype_filename, "w") {|f| f.print "application/epub+zip"}
-      return File.basename(mimetype_filename)
-    end
-
     def xml_image_references
       parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
       references = Array.new
@@ -158,21 +168,9 @@ module DocbookXslWrapper
 
     def is_valid_image_reference?(element)
       return false unless element.start_element?
-      return false unless element[0] == 'imagedata' or element[0] == 'graphic'
+      return false unless element[0] == 'graphic' or element[0] == 'imagedata'
       return true if element[1]['fileref'].match(/\.(jpe?g|png|gif|svg|xml)\Z/i)
       false
-    end
-
-    # Returns true if the document has code callouts
-    def has_callouts?
-      parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
-      while parser.has_next?
-        el = parser.pull
-        if el.start_element? and (el[0] == "calloutlist" or el[0] == "co")
-          return true
-        end
-      end
-      return false
     end
 
     def oebps_directory
