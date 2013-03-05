@@ -21,33 +21,36 @@ module DocbookXslWrapper
     def render_to_epub
       @collapsed_docbook_file = collapse_docbook()
 
-      chunk_quietly =   "--stringparam chunk.quietly " + (options.verbose ? '0' : '1')
-      co_path =    "--stringparam callout.graphics.path #{options.callout_path}/"
-      co_limit =   "--stringparam callout.graphics.number.limit #{options.callout_limit}"
-      co_ext =     "--stringparam callout.graphics.extension #{options.callout_ext}"
-      html_stylesheet = "--stringparam html.stylesheet #{File.basename(options.css)}" if options.css
-      base =            "--stringparam base.dir #{oebps_directory}/"
-      unless options.fonts.empty?
-        fonts = options.fonts.map {|f| File.basename(f)}.join(',')
-        font =            "--stringparam epub.embedded.fonts \"#{fonts}\""
-      end
-      meta =            "--stringparam epub.metainf.dir #{meta_inf_directory}/"
-      oebps =           "--stringparam epub.oebps.dir #{oebps_directory}/"
-      parser_opts = [chunk_quietly,
-                 co_path,
-                 co_limit,
-                 co_ext,
-                 base,
-                 font,
-                 meta,
-                 oebps,
-                 html_stylesheet,
-                ].join(" ")
       # Double-quote stylesheet & file to help Windows cmd.exe
-      db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{parser_opts} "#{options.custom_xsl}" "#{@collapsed_docbook_file}")
+      db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{xsl_parser_options} "#{options.custom_xsl}" "#{@collapsed_docbook_file}")
       STDERR.puts db2epub_cmd if $DEBUG
       success = system(db2epub_cmd)
       raise "Could not render as .epub to #{options.output} (#{db2epub_cmd})" unless success
+    end
+
+    def xsl_parser_options
+      chunk_quietly   = "--stringparam chunk.quietly " + (options.verbose ? '0' : '1')
+      co_path         = "--stringparam callout.graphics.path #{options.callout_path}/"
+      co_limit        = "--stringparam callout.graphics.number.limit #{options.callout_limit}"
+      co_ext          = "--stringparam callout.graphics.extension #{options.callout_ext}"
+      html_stylesheet = "--stringparam html.stylesheet #{File.basename(options.css)}" if options.css
+      base            = "--stringparam base.dir #{oebps_directory}/"
+      unless options.fonts.empty?
+        fonts = options.fonts.map {|f| File.basename(f)}.join(',')
+        font  = "--stringparam epub.embedded.fonts \"#{fonts}\""
+      end
+      meta  = "--stringparam epub.metainf.dir #{meta_inf_directory}/"
+      oebps = "--stringparam epub.oebps.dir #{oebps_directory}/"
+      [chunk_quietly,
+       co_path,
+       co_limit,
+       co_ext,
+       base,
+       font,
+       meta,
+       oebps,
+       html_stylesheet,
+      ].join(" ")
     end
 
     def bundle_epub
