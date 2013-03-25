@@ -14,7 +14,7 @@ module DocbookXslWrapper
       end
       it "should assign docbook with the XML file path" do
         options = Options.parse(['etext.xml'])
-        options.docbook.should eql 'etext.xml'
+        options.docbook.should match /etext\.xml\z/
       end
       it "should set the EPUB output filename from the XML filename" do
         options = Options.parse(['/path/to/etext.xml'])
@@ -40,19 +40,20 @@ module DocbookXslWrapper
       context "when css option used" do
         it "should assign value to .css" do
           options = Options.parse(['--css', 'stylesheet.css', 'etext.xml'])
-          options.css.should eq 'stylesheet.css'
+          options.css.should match /stylesheet\.css\z/
         end
       end
       context "when customization stylsheet given option" do
-        it "should set .custom_xsl with the value" do
+        it "should set .stylesheet with the value" do
           options = Options.parse(['--stylesheet', 'some.xsl', 'etext.xml'])
-          options.custom_xsl.should eq 'some.xsl'
+          options.stylesheet.should match /some\.xsl\z/
         end
       end
       context "when fonts option" do
         it "should sets fonts with the OTF files" do
           options = Options.parse(['--font', 'one.otf', '--font', 'two.otf', 'etext.xml'])
-          options.fonts.should eq ['one.otf', 'two.otf']
+          options.fonts[0].should match /one\.otf\z/
+          options.fonts[1].should match /two\.otf\z/
         end
       end
       context "when output file given" do

@@ -13,7 +13,7 @@ module DocbookXslWrapper
       options.callout_ext       = '.png'
 
       options.css               = nil
-      options.custom_xsl        = nil
+      options.stylesheet        = nil
       options.fonts             = []
       options.output            = nil
       options.debug             = false
@@ -34,19 +34,19 @@ module DocbookXslWrapper
 
 
         opts.on("-c", "--css [FILE]", "Use FILE for CSS on generated XHTML.") do |css|
-          options.css = css
+          options.css = File.expand_path(css)
         end
 
-        opts.on("-s", "--stylesheet [XSL FILE]", "Use XSL FILE as a custom_xsl layer (imports epub/docbook.xsl).") do |xsl|
-          options.custom_xsl = xsl
+        opts.on("-s", "--stylesheet [XSL FILE]", "Use XSL FILE as a stylesheet layer (imports epub/docbook.xsl).") do |xsl|
+          options.stylesheet = File.expand_path(xsl)
         end
 
         opts.on("-f", "--font [OTF FILE]", "Embed OTF FILE in .epub.") do |otf|
-          options.fonts << otf
+          options.fonts << File.expand_path(otf)
         end
 
         opts.on("-o", "--output [OUTPUT FILE]", "Output EPUB file as OUTPUT FILE.") do |output|
-          options.output = output
+          options.output = File.expand_path(output)
         end
 
         opts.separator ""
@@ -79,7 +79,7 @@ module DocbookXslWrapper
       args = ['-h'] if args.empty?
       opts.parse!(args)
 
-      options.docbook = args.first
+      options.docbook = File.expand_path(args.first)
       unless options.docbook
         puts "No DocBook XML file(s) specified"
         exit
