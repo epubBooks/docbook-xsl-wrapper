@@ -6,11 +6,6 @@ module DocbookXslWrapper
 
     def self.parse(args)
       options = OpenStruct.new
-      options.docbook_xsl_root  = 'http://docbook.sourceforge.net/release/xsl/current'
-      options.callout_path      = File.join('images', 'callouts')
-      options.callout_full_path = File.join(options.docbook_xsl_root, options.callout_path)
-      options.callout_limit     = 15
-      options.callout_ext       = '.png'
 
       options.css               = nil
       options.stylesheet        = nil

@@ -8,7 +8,9 @@ module DocbookXslWrapper
 
     def initialize(options)
       @options = options
-      @options.stylesheet = File.join(options.docbook_xsl_root, 'epub', 'docbook.xsl') unless options.stylesheet
+
+      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl/current', 'epub', 'docbook.xsl')
+      @options.stylesheet = official_docbook_xsl unless options.stylesheet
     end
 
     def create
@@ -31,9 +33,6 @@ module DocbookXslWrapper
 
     def xsl_parser_options
       chunk_quietly = "--stringparam chunk.quietly 1" if options.verbose == false
-      co_path       = "--stringparam callout.graphics.path #{options.callout_path}"
-      co_limit      = "--stringparam callout.graphics.number.limit #{options.callout_limit}"
-      co_ext        = "--stringparam callout.graphics.extension #{options.callout_ext}"
       css           = "--stringparam html.stylesheet #{File.basename(options.css)}/" if options.css
       base          = "--stringparam base.dir #{oebps_path}/"
       unless options.fonts.empty?
@@ -45,9 +44,6 @@ module DocbookXslWrapper
 
       [
         chunk_quietly,
-        co_path,
-        co_limit,
-        co_ext,
         base,
         font,
         meta,
