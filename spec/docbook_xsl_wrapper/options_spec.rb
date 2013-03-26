@@ -9,6 +9,8 @@ module DocbookXslWrapper
         options.css.should be nil
         options.customization.should be nil
         options.fonts.should eql []
+        options.format.should eq 'epub'
+        options.output.should match /etext\.epub\z/
         options.debug.should be false
         options.verbose.should be false
       end
@@ -60,6 +62,12 @@ module DocbookXslWrapper
         it "should assign output with the path/filename" do
           options = Options.parse(['--output', '/path/to/new.epub', 'etext.xml'])
           options.output.should eq '/path/to/new.epub'
+        end
+      end
+      context "when output ebook format is given" do
+        it "should assign format with the given book format" do
+          options = Options.parse(['--type', 'ePub3', 'etext.xml'])
+          options.format.should eq 'epub3'
         end
       end
     end

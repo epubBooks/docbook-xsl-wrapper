@@ -15,7 +15,7 @@ module DocbookXslWrapper
       options.css               = nil
       options.stylesheet        = nil
       options.fonts             = []
-      options.output            = nil
+      options.format            = 'epub'
       options.debug             = false
       options.verbose           = false
       options.docbook           = nil
@@ -33,20 +33,24 @@ module DocbookXslWrapper
         opts.separator "Specific options:"
 
 
-        opts.on("-c", "--css [FILE]", "Use FILE for CSS on generated XHTML.") do |css|
+        opts.on("-c", "--css [FILE]", "Custom CSS for generated HTML") do |css|
           options.css = File.expand_path(css)
         end
 
-        opts.on("-s", "--stylesheet [XSL FILE]", "Use XSL FILE as a stylesheet layer (imports epub/docbook.xsl).") do |xsl|
+        opts.on("-s", "--stylesheet [XSL FILE]", "Custom XSL layer (imports epub/docbook.xsl)") do |xsl|
           options.stylesheet = File.expand_path(xsl)
         end
 
-        opts.on("-f", "--font [OTF FILE]", "Embed OTF FILE in .epub.") do |otf|
+        opts.on("-f", "--font [OTF FILE]", "OpenType Font file for inclusion in the EPUB") do |otf|
           options.fonts << File.expand_path(otf)
         end
 
-        opts.on("-o", "--output [OUTPUT FILE]", "Output EPUB file as OUTPUT FILE.") do |output|
+        opts.on("-o", "--output [OUTPUT FILE]", "Filename for the generated document") do |output|
           options.output = File.expand_path(output)
+        end
+
+        opts.on("-t", "--type [BOOK TYPE]", "eBook type (format) that you wish to output: epub, epub3") do |format|
+          options.format = "#{format.downcase}"
         end
 
         opts.separator ""
