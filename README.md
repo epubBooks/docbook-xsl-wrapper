@@ -1,13 +1,12 @@
 # DocBook XSL Wrapper
 
-_Initial 'gemification' of the DocBook XSL Ruby script. Please consider
-this as an Alpha release._
+_Please consider this as an Alpha release._
 
 The DocBook XSL stylesheets are very powerful and provide an easy way to output
 your DocBook XML documents into a usable format such as EPUB and PDF. This GEM
 hopes to make using these stylesheets even easier.
 
-At present the wrapper will only convert DocBook to EPUB 2 and is
+At present the wrapper will only convert DocBook to EPUB2 and EPUB3 and is
 intended to be run from the command-line - future versions will have more
 functionality (see Future Improvements).
 
@@ -17,7 +16,7 @@ The original Ruby script can be found at: http://docbook.sourceforge.net/release
 ## Requirements
 
 * DocBook
-* DocBook XSL (~> v1.78.0)
+* DocBook XSL (~> v1.78.1)
 * xsltproc
 
 ### NOTE
@@ -31,10 +30,10 @@ needed fixing before everything worked correctly.
 
 The catalog file ($XML_CATALOG_FILES) needed updating;
 
-1. Add an entry to your 1.78.0 path.
+1. Add an entry to your 1.78.1 path.
 2. Remove older XSL entries (e.g. 1.76.0 & 1.77.0).
 
-_Please make sure that xsltproc uses the *1.78.0* stylesheets as default_
+_Please make sure that xsltproc uses the *1.78.1* stylesheets as default_
 
 
 ## Installation
@@ -49,7 +48,6 @@ _Please make sure that xsltproc uses the *1.78.0* stylesheets as default_
 
   * Better design so it can be used from within other GEMs, as part of a larger tool-chain.
   * Test that the GEM also works on Linux.
-  * EPUB3 output
   * Other output formats (e.g. PDF)
 
 ## Contributing
