@@ -32,7 +32,7 @@ module DocbookXslWrapper
           options.css = File.expand_path(css)
         end
 
-        opts.on("-s", "--stylesheet [XSL FILE]", "Custom XSL layer (imports epub/docbook.xsl)") do |xsl|
+        opts.on("-s", "--stylesheet [XSL FILE]", "Custom XSL layer (imports epub/docbook.xsl, overrides --type)") do |xsl|
           options.stylesheet = File.expand_path(xsl)
         end
 
@@ -44,8 +44,9 @@ module DocbookXslWrapper
           options.output = File.expand_path(output)
         end
 
-        opts.on("-t", "--type [BOOK TYPE]", "eBook type (format) that you wish to output: epub, epub3") do |format|
-          options.format = "#{format.downcase}"
+        opts.on("-t", "--type [BOOK TYPE]", "eBook type (format) that you wish to output: epub, epub3", /\Aepub[23]?\z/i) do |format|
+          format = format.downcase if format
+          options.format = "#{format}"
         end
 
         opts.separator ""

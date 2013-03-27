@@ -9,14 +9,24 @@ module DocbookXslWrapper
     def initialize(options)
       @options = options
 
-      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl/current', 'epub', 'docbook.xsl')
+      case options.format
+      when 'epub3'
+        xsl = File.join('epub3', 'chunk.xsl')
+      else
+        xsl = File.join('epub', 'docbook.xsl')
+      end
+      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl/current', xsl)
+
       @options.stylesheet = official_docbook_xsl unless options.stylesheet
     end
 
     def create
-      render_to_epub
-      bundle_epub
-      FileUtils.remove_entry_secure @collapsed_docbook_file
+      begin
+        render_to_epub
+        bundle_epub
+      ensure
+        FileUtils.remove_entry_secure @collapsed_docbook_file
+      end
     end
 
   private
