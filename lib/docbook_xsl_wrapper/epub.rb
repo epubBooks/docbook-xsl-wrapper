@@ -15,7 +15,7 @@ module DocbookXslWrapper
       else
         xsl = File.join('epub', 'docbook.xsl')
       end
-      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl/current', xsl)
+      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl-ns/current', xsl)
 
       @options.stylesheet = official_docbook_xsl unless options.stylesheet
     end
