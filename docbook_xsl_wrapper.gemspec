@@ -6,8 +6,8 @@ Gem::Specification.new do |gem|
   gem.version       = DocbookXslWrapper::VERSION
   gem.authors       = ["Mike Cook"]
   gem.email         = ["m@mikecook.co.uk"]
-  gem.summary       = %q{Wrapper for the DocBook XSL stylesheets for easy XML to EPUB}
-  gem.description   = %q{DocBook XSL Wrapper let's you easily convert DocBook XML to EPUB using the official DocBook XSL stylesheets.}
+  gem.summary       = %q{DocBook XSL Wrapper: validate/transform DocBook 5.x XML documents}
+  gem.description   = %q{DocBook XSL Wrapper let's you easily validate then convert DocBook 5.x XML documents to EPUB using the official DocBook XSL stylesheets.}
 
   gem.platform      = Gem::Platform::RUBY
   gem.files         = `git ls-files`.split($\)
@@ -15,7 +15,7 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
 
-  gem.required_ruby_version = '~> 1.9.3'
+  gem.add_dependency('nokogiri', '~> 1.5.9')
 
-  gem.add_development_dependency('rspec', '~> 2.13.0')
+  gem.add_development_dependency('rspec', '~> 2')
 end
