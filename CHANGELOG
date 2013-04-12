@@ -1,0 +1,41 @@
+= Release History
+
+== 0.1.2 / 2013-04-02 Michael Cook
+
+* Now using Namespaced XSL: should produce less errors with some XML
+
+
+== 0.1.0 / 2013-03-27 Michael Cook
+
+* EPUB3 output supported
+* Some other small refactoring
+
+
+== 0.0.7 / 2013-03-05 Michael Cook
+
+* Refactored the way images are copied
+
+
+== 0.0.6 / 2013-03-05 Michael Cook
+
+* Fix bg with the OPF path in container.xml
+
+
+== 0.0.4 / 2013-03-02 Michael Cook
+
+* Bg refactor of the Epub class
+
+
+== 0.0.3 / 2013-02-27 Michael Cook
+
+* Removed development dependency on 'autotest'
+
+
+== 0.0.2 / 2013-02-23 Michael Cook
+
+* Better command-line options
+
+
+== 0.0.1 / 2013-02-22 Michael Cook
+
+* Initial gemification of the original Ruby script
