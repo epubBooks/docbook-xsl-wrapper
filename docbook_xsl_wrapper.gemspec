@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 require File.expand_path('../lib/docbook_xsl_wrapper/version', __FILE__)
 
 Gem::Specification.new do |gem|
@@ -16,7 +15,7 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
 
-  gem.add_dependency('nokogiri', '~> 1.5.9')
+  gem.add_dependency('nokogiri', '~> 1.6.1')
 
-  gem.add_development_dependency('rspec', '~> 2')
+  gem.add_development_dependency('rspec', '~> 2.14')
 end
