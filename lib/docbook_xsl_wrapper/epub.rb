@@ -4,104 +4,169 @@ require 'rexml/parsers/pullparser'
 module DocbookXslWrapper
 
   class Epub
-    attr_reader :options
+    attr_reader :options, :xml
 
     def initialize(options)
       @options = options
-
-      case options.format
-      when 'epub3'
-        xsl = File.join('epub3', 'chunk.xsl')
-      else
-        xsl = File.join('epub', 'docbook.xsl')
-      end
-      official_docbook_xsl = File.join('http://docbook.sourceforge.net/release/xsl-ns/current', xsl)
-
-      @options.stylesheet = official_docbook_xsl unless options.stylesheet
+      @xml     = Nokogiri::XML(File.open(@options.docbook, 'rb'))
     end
 
     def create
-      begin
-        render_to_epub
-        bundle_epub
-      ensure
-        FileUtils.remove_entry_secure @collapsed_docbook_file
-      end
+      # Nokogiri doesn't create directories, so we do it manually
+      Dir.mkdir(File.join(options.destination, meta_inf_directory))
+      Dir.mkdir(File.join(options.destination, oebps_directory))
+
+      render_to_epub
+      bundle_epub
     end
 
   private
 
     def render_to_epub
-      @collapsed_docbook_file = collapse_docbook
-
-      # Double-quote stylesheet & file to help Windows cmd.exe
-      db2epub_cmd = %Q(cd "#{options.destination}" && xsltproc #{xsl_parser_options} "#{options.stylesheet}" "#{@collapsed_docbook_file}")
-      STDERR.puts db2epub_cmd if options.debug
-      success = system(db2epub_cmd)
-      raise "Could not render as .epub to #{options.output} (#{db2epub_cmd})" unless success
+      errors = xslt_transform_and_rescue_because_it_currently_throws_unknown_runtime_error
+      raise "Could not render as .epub to #{options.output}\n\n(#{errors})" unless errors.empty?
     end
 
-    def xsl_parser_options
-      chunk_quietly = "--stringparam chunk.quietly 1" if options.verbose == false
-      css           = "--stringparam html.stylesheet #{File.basename(options.css)}/" if options.css
-      base          = "--stringparam base.dir #{oebps_path}/"
-      unless options.fonts.empty?
-        fonts = options.fonts.map {|f| File.basename(f)}.join(',')
-        font  = "--stringparam epub.embedded.fonts \"#{fonts}\""
+    def xslt_transform_and_rescue_because_it_currently_throws_unknown_runtime_error
+      begin
+        errors = stylesheet.transform(xml, params)
+      rescue
+        errors = ''
       end
-      meta  = "--stringparam epub.metainf.dir #{meta_inf_directory}/"
-      oebps = "--stringparam epub.oebps.dir #{oebps_directory}/"
-
-      [
-        chunk_quietly,
-        base,
-        font,
-        meta,
-        oebps,
-        css,
-      ].join(" ")
+      errors
     end
 
-    def collapse_docbook
-      # Input must be collapsed because REXML couldn't find figures in files that
-      # were XIncluded or added by ENTITY
-      #   http://sourceforge.net/tracker/?func=detail&aid=2750442&group_id=21935&atid=373747
+    def stylesheet
+      if options.stylsheet
+        xsl = options.stylsheet
+      else
+        xsl = docbook_xsl_path
+      end
+      Nokogiri::XSLT(File.open(xsl, 'rb'))
+    end
 
-      # Double-quote stylesheet & file to help Windows cmd.exe
-      collapsed_file = File.join(File.expand_path(File.dirname(options.docbook)),
-                                 '.collapsed.' + File.basename(options.docbook))
-      entity_collapse_command = %Q(xmllint --loaddtd --noent -o "#{collapsed_file}" "#{options.docbook}")
-      entity_success = system(entity_collapse_command)
-      raise "Could not collapse named entites in #{options.docbook}" unless entity_success
+    def docbook_xsl_path
+      case options.format
+      when 'epub3'
+        File.join(GEM_PATH, 'xsl', 'epub3', 'chunk.xsl')
+      else
+        File.join(GEM_PATH, 'xsl', 'epub', 'docbook.xsl')
+      end
+    end
 
-      xinclude_collapse_command = %Q(xmllint --xinclude -o "#{collapsed_file}" "#{collapsed_file}")
-      xinclude_success = system(xinclude_collapse_command)
-      raise "Could not collapse XIncludes in #{options.docbook}" unless xinclude_success
+    def params
+      params_list = [
+        'chunk.quietly', "#{verbosity}",
+        'base.dir', File.join(options.destination, '/'),
+      ]
+      params_list.concat(css) if options.css
+      params_list.concat(fonts) unless options.fonts.empty?
 
-      collapsed_file
+      Nokogiri::XSLT.quote_params(params_list)
+    end
+
+    def fonts
+      ['epub.embedded.fonts', options.fonts.map {|f| File.basename(f)}.join(',')]
+    end
+
+    def css
+      ['html.stylesheet', File.join(File.basename(options.css), '/')]
     end
 
     def bundle_epub
-      quiet = options.verbose ? "" : "-q"
-      mimetype_filename = write_mimetype
-      images = copy_images
-      csses  = copy_css
-      fonts  = copy_fonts
-      callouts = copy_callouts
-      # zip -X -r ../book.epub mimetype META-INF OEBPS
+      copy_media_files_to_epub_dir
+      create_mimetype_file if options.format == 'epub' # EPUB3 stylesheet creates this automatically
+
+      quiet = options.verbose ? '' : '-q'
       # Double-quote stylesheet & file to help Windows cmd.exe
-      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "#{mimetype_filename}" "#{meta_inf_directory}" "#{oebps_directory}")
+      zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "mimetype" "#{meta_inf_directory}" "#{oebps_directory}")
       puts zip_cmd if options.debug
       success = system(zip_cmd)
       raise "Could not bundle into .epub file to #{options.output}" unless success
     end
 
-    def write_mimetype
+    def create_mimetype_file
       filename = File.join(options.destination, "mimetype")
       File.open(filename, "w") {|f| f.print "application/epub+zip"}
       File.basename(filename)
     end
 
+    def copy_media_files_to_epub_dir
+      copy_fonts
+      copy_css
+      copy_images
+
+      # Callouts disabled in this release until more testing can be done
+      #copy_callouts
+    end
+
+    def copy_fonts
+      return if options.fonts.empty?
+
+      font_directory = File.join(options.destination, oebps_directory, 'fonts')
+      Dir.mkdir(font_directory)
+
+      options.fonts.each do |font|
+        FileUtils.cp(font, File.join(font_directory, File.basename(font)))
+      end
+    end
+
+    def copy_css
+      return unless options.css
+
+      FileUtils.cp(options.css, File.join(options.destination, oebps_directory, File.basename(options.css)))
+    end
+
+    def copy_images
+      xml_image_references.each do |image|
+        copy_image(image)
+      end
+    end
+
+    def xml_image_references
+      refs = Array.new
+      xml.xpath('//xmlns:imagedata', '//xmlns:graphic', 'xmlns' => 'http://docbook.org/ns/docbook').each do |node|
+        img = node.attribute('fileref').value
+        refs << img if is_valid_image?(img)
+      end
+
+      refs.uniq
+    end
+
+    def is_valid_image?(image)
+      return true if File.extname(image).match(/\.(jpe?g|png|gif|svg|xml)\z/i)
+      false
+    end
+
+    def copy_image(image)
+      source      = File.join(File.dirname(options.docbook), image)
+      destination = File.join(options.destination, oebps_directory, image)
+
+      FileUtils.mkdir_p(File.dirname(destination))
+
+      puts "Copying image: #{source} to #{destination}" if options.debug
+      FileUtils.cp(source, destination)
+    end
+
+    def oebps_directory
+      'OEBPS'
+    end
+
+    def oebps_path
+      @oebps_path ||= File.join(options.destination, oebps_directory)
+    end
+
+    def meta_inf_directory
+      'META-INF'
+    end
+
+    def verbosity
+      return 0 if options.verbose == true
+      return 1
+    end
+
+
+    # TODO: This method is not being called for the moment....needs to be tested
     def copy_callouts
       return unless has_callouts?
 
@@ -118,7 +183,6 @@ module DocbookXslWrapper
       images
     end
 
-    # Returns true if the document has code callouts
     def has_callouts?
       parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
       while parser.has_next?
@@ -126,72 +190,6 @@ module DocbookXslWrapper
         return true if element.start_element? and (element[0] == "calloutlist" or element[0] == "co")
       end
       false
-    end
-
-    def copy_fonts
-      fonts = Array.new
-      options.fonts.each {|font|
-        new_filename = File.join(oebps_path, File.basename(font))
-        FileUtils.cp(font, new_filename)
-        fonts << font
-      }
-      fonts
-    end
-
-    def copy_css
-      return unless options.css
-
-      filename = File.join(oebps_path, File.basename(options.css))
-      FileUtils.cp(options.css, filename)
-    end
-
-    def copy_images
-      images = Array.new
-      xml_image_references.each do |image|
-        images << copy_image(image)
-      end
-      images
-    end
-
-    def copy_image(image)
-      source_file      = File.join(File.expand_path(File.dirname(options.docbook)), image)
-      destination_file = File.join(oebps_path, image)
-
-      FileUtils.mkdir_p(File.dirname(destination_file))
-
-      puts "Copying image: #{source_file} to #{destination_file}" if options.debug
-      FileUtils.cp(source_file, destination_file)
-
-      destination_file
-    end
-
-    def xml_image_references
-      parser = REXML::Parsers::PullParser.new(File.new(@collapsed_docbook_file))
-      references = Array.new
-      while parser.has_next?
-        element = parser.pull
-        references << element[1]['fileref'] if is_valid_image_reference?(element)
-      end
-      references.uniq
-    end
-
-    def is_valid_image_reference?(element)
-      return false unless element.start_element?
-      return false unless element[0] == 'graphic' or element[0] == 'imagedata'
-      return true if element[1]['fileref'].match(/\.(jpe?g|png|gif|svg|xml)\Z/i)
-      false
-    end
-
-    def oebps_directory
-      'OEBPS'
-    end
-
-    def oebps_path
-      @oebps_path ||= File.join(options.destination, oebps_directory)
-    end
-
-    def meta_inf_directory
-      'META-INF'
     end
 
   end
