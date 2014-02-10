@@ -36,7 +36,7 @@ module DocbookXslWrapper
           options.stylesheet = File.expand_path(xsl)
         end
 
-        opts.on("-f", "--font [OTF FILE]", "OpenType Font file for inclusion in the EPUB") do |otf|
+        opts.on("-f", "--font [OTF FILE]", "OpenType Font file for inclusion in the EPUB - copied to 'fonts' directory") do |otf|
           options.fonts << File.expand_path(otf)
         end
 
