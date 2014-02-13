@@ -2,7 +2,6 @@
 
 $LOAD_PATH << File.expand_path(File.dirname(__FILE__) + '/../lib')
 
-require 'tmpdir'
 require 'docbook_xsl_wrapper'
 
 

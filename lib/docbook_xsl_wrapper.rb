@@ -1,3 +1,4 @@
+require 'tmpdir'
 require 'nokogiri'
 
 require 'docbook_xsl_wrapper/epub'
