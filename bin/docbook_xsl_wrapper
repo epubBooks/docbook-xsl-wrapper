@@ -14,10 +14,9 @@ end
 
 doc = DocbookXslWrapper::Validate.new(File.open(options.docbook, 'rb'))
 unless doc.valid?
-  puts "YOUR DOCBOOK XML IS NOT VALID - PLEASE FIX."
+  puts "YOUR DOCBOOK XML DOES NOT SEEM TO BE VALID - PLEASE FIX."
   puts
   puts doc.errors
-  exit
 end
 
 tmp_dir = Dir.mktmpdir
