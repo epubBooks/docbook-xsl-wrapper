@@ -2,9 +2,9 @@
 
 **IMPORTANT NOTICE - THIS GEM IS NO LONGER UNDER DEVELOPMENT**
 
-_I've been struggling to re-work this GEM to be usable as a library, rather than just as a command-line tool. On top of that I think perhaps the GEM naming is not the best._
+I've been struggling to re-work this GEM to be usable as a library, rather than just as a command-line tool. On top of that I think perhaps the GEM naming is not the best.
 
-_For these reasons, I'm unlikely to develop this GEM any further. I may release an alternate _Docbook to EPUB_ libary at a later date, so keep an eye on my Github account for that._
+For these reasons, I'm unlikely to develop this GEM any further. I may release an alternate _Docbook to EPUB_ libary at a later date, so keep an eye on my Github account for that.
 
 ====
 
