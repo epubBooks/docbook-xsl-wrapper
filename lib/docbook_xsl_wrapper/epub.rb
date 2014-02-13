@@ -37,11 +37,9 @@ module DocbookXslWrapper
     end
 
     def stylesheet
-      if options.stylsheet
-        xsl = options.stylsheet
-      else
-        xsl = docbook_xsl_path
-      end
+      xsl = docbook_xsl_path
+      xsl = options.stylesheet unless options.stylesheet.empty?
+
       Nokogiri::XSLT(File.open(xsl, 'rb'))
     end
 
@@ -57,6 +55,11 @@ module DocbookXslWrapper
     def params
       params_list = [
         'chunk.quietly', "#{verbosity}",
+        'chunk.first.sections', 1,
+        'othercredit.like.author.enabled', 1,
+        'chapter.autolabel', 0,
+        'section.autolabel', 0,
+        'part.autolabel', 0,
         'base.dir', File.join(options.destination, '/'),
       ]
       params_list.concat(css) if options.css
@@ -80,6 +83,7 @@ module DocbookXslWrapper
       quiet = options.verbose ? '' : '-q'
       # Double-quote stylesheet & file to help Windows cmd.exe
       zip_cmd = %Q(cd "#{options.destination}" && zip #{quiet} -X -r  "#{File.expand_path(options.output)}" "mimetype" "#{meta_inf_directory}" "#{oebps_directory}")
+
       puts zip_cmd if options.debug
       success = system(zip_cmd)
       raise "Could not bundle into .epub file to #{options.output}" unless success
