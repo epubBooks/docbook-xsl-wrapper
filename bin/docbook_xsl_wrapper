@@ -7,26 +7,15 @@ require 'docbook_xsl_wrapper'
 
 
 options = DocbookXslWrapper::Options.parse(ARGV)
+docbook = options.docbook
 
-unless File.exist?(options.docbook)
-  raise ArgumentError.new("File #{options.docbook} does not exist")
-end
+raise ArgumentError.new("File #{docbook} does not exist") unless File.exist?(docbook)
 
-doc = DocbookXslWrapper::Validate.new(File.open(options.docbook, 'rb'))
+doc = DocbookXslWrapper::Validate.new(File.open(docbook, 'rb'))
 unless doc.valid?
   puts "YOUR DOCBOOK XML DOES NOT SEEM TO BE VALID - PLEASE FIX."
   puts
   puts doc.errors
 end
 
-tmp_dir = Dir.mktmpdir
-options.destination = tmp_dir
-
-begin
-  puts "Rendering DocBook file #{options.docbook} to #{options.output}\n\n" if options.verbose
-
-  epub = DocbookXslWrapper::Epub.new(options)
-  epub.create
-ensure
-  FileUtils.remove_entry_secure tmp_dir
-end
+DocbookXslWrapper.build_epub(options)
